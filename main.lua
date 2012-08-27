@@ -43,6 +43,11 @@ end
 
 function love.load()
 	time = 0
+	xmin = 0 -- -100
+	ymin = 0 -- -100
+	xmax = love.graphics.getWidth() -- + 100
+	ymax = love.graphics.getHeight() -- + 100
+	debugPts = {} --array of coord pairs to mark
 	nInitCells = 5 --5
 	nCells = nInitCells
 	dist = 7
@@ -291,11 +296,17 @@ function updateCell(_n,dt)
 		--with player:
 		if distance(c.membrane[i],c.membrane[i+1],player.x,player.y) < plen+2 then
 			hitPlayer(1)
+			table.insert(debugPts,{x = c.membrane[i], y = c.membrane[i+1], r = 2})
+			table.insert(debugPts,{x = c.nucleus.x, y = c.nucleus.y, r = 4})
 		end
 		--with bullets:
 		local j = 1
 		while j <= table.getn(bullets) do
 			if distance(c.membrane[i],c.membrane[i+1],bullets[j].x,bullets[j].y) < 4 then
+				
+				table.insert(debugPts,{x = c.membrane[i], y = c.membrane[i+1], r = 2})
+				table.insert(debugPts,{x = c.nucleus.x, y = c.nucleus.y, r = 4})
+				
 				table.remove(bullets,j)
 				table.remove(c.membrane,i)
 				table.remove(c.membrane,i)
@@ -316,6 +327,11 @@ function updateCell(_n,dt)
 		--print(i,c.mbsize)
 		c.membrane[i] = c.membrane[i] + c.membraneVel[i]*dt + 0.5*c.membraneAcc[i]*dt*dt --update x
 		c.membrane[i+1] = c.membrane[i+1] + c.membraneVel[i+1]*dt + 0.5*c.membraneAcc[i+1]*dt*dt --update y
+		--boundaries:
+		if c.membrane[i] < xmin then c.membrane[i] = xmin+2; c.dir = c.dir + math.pi
+		elseif c.membrane[i] > xmax then c.membrane[i] = xmax-2; c.dir = c.dir + math.pi end
+		if c.membrane[i+1] < ymin then c.membrane[i+1] = ymin+2; c.dir = c.dir + math.pi
+		elseif c.membrane[i+1] > ymax then c.membrane[i+1] = ymax-2; c.dir = c.dir + math.pi end
 		--calculating acceleration:
 		
 		local accn = acc + 80*(math.random() - 0.5)
@@ -399,6 +415,7 @@ function love.update(dt)
 	if player.hitTime < 0 then player.hitTime = 0 end
 	--print(time,1/dt)
 	--for i,c in ipairs(cells) do
+	debugPts = {}
 	local i = 1
 	while i <= table.getn(cells) do
 		if cells[i] then
@@ -540,4 +557,5 @@ function love.draw()
 		love.graphics.setColor(0,0,0,255)
 		for j = 1,c.mbsize,2 do love.graphics.point(c.membrane[j],c.membrane[j+1]) end
 	end
+	for i,p in ipairs(debugPts) do love.graphics.circle("fill",p.x,p.y,p.r) end
 end
