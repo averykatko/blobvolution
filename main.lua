@@ -57,7 +57,7 @@ function love.load()
 	memSpringDamping = 0
 	mediumDamping = 2
 	drag = 1
-	player = {x = 200, y = 150, vx = 0, vy = 0, ax = 0, ay = 0, dir = 0, hp = 10, lives = 3, hitTime = 0}
+	player = {x = 200, y = 150, vx = 0, vy = 0, ax = 0, ay = 0, dir = 0, hp = 10, lives = 3, hitTime = 0, fireTime = 0}
 	plen = 5
 	bullets = {}
 	cells = {}
@@ -75,7 +75,7 @@ end
 
 function updateCell(_n,dt)
 	local c = cells[_n]
-	print(_n,c)
+	--print(_n,c)
 	--print(c.membrane[1],c.membrane[2],c.membrane[mbsize-1],c.membrane[mbsize])
 	--print(c.nucleus.x,c.nucleus.y,c.nucleus.vx,c.nucleus.vy,c.nucleus.ax,c.nucleus.ay)
 	c.gtimer = c.gtimer + dt
@@ -113,10 +113,10 @@ function updateCell(_n,dt)
 		io.write("oldc: {")
 		for itr = 1,oldc.mbsize do io.write(oldc.membrane[itr]," ") end
 		io.write("}\n")
-		print(oldc)
+		--print(oldc)
 		c = {}
 		c.membrane = {}
-		print(c,oldc)
+		--print(c,oldc)
 		c.membraneVel = {}
 		c.membraneAcc = {}
 		c.springs = {}
@@ -139,7 +139,7 @@ function updateCell(_n,dt)
 		end
 		for i = split,oldc.mbsize do
 			newcell.membrane[i+1-split] = oldc.membrane[i]
-			print(newcell.membrane[i+1-split])
+			--print(newcell.membrane[i+1-split])
 			newcell.membraneVel[i+1-split] = oldc.membraneVel[i]
 			newcell.membraneAcc[i+1-split] = oldc.membraneAcc[i]
 			--[[if (math.floor(i/2) ~= i/2) then
@@ -321,7 +321,7 @@ function updateCell(_n,dt)
 		--preceding:
 		local otherx = 0
 		local othery = 0
-		print(i,c.mbsize)
+		--print(i,c.mbsize)
 		if 1 == i then
 			otherx = c.membrane[c.mbsize-1]
 			othery = c.membrane[c.mbsize]
@@ -397,6 +397,7 @@ function love.update(dt)
 	
 	local mx,my = love.mouse.getPosition()
 	player.dir = math.atan2(my-player.y,mx-player.x)
+	if love.mouse.isDown("l","r") then fire(mx,my) end
 	
 	local md = nil
 	if love.keyboard.isDown("right") then
@@ -432,8 +433,12 @@ function love.update(dt)
 	player.vx = player.vx + (player.ax+nax)*dt/2
 	player.vy = player.vy + (player.ay+nay)*dt/2
 	
+	player.fireTime = player.fireTime - dt
+	if player.fireTime < 0 then player.fireTime = 0 end
+	
+	print("cells:",table.getn(cells),"bullets:",table.getn(bullets))
+	
 	--bullets
-	print("bullets:",table.getn(bullets))
 	local i = 1
 	while i <= table.getn(bullets) do
 		local b = bullets[i]
@@ -455,16 +460,19 @@ function hitPlayer(damage)
 	end
 end
 
-function love.mousepressed(x,y,button)
-	player.dir = math.atan2(y-player.y,x-player.x)
-	local proj = {}
-	local vel = 200
-	proj.x = player.x
-	proj.y = player.y
-	proj.vx = vel * math.cos(player.dir)
-	proj.vy = vel * math.sin(player.dir)
-	proj.timer = 10 --#seconds until projectile is destroyed (to avoid having thousands of stray bullets cause lag (esp. w/ collision checks)
-	table.insert(bullets,proj)
+function fire(x,y)--love.mousepressed(x,y,button)
+	if 0 == player.fireTime then
+		--player.dir = math.atan2(y-player.y,x-player.x)
+		local proj = {}
+		local vel = 200
+		proj.x = player.x
+		proj.y = player.y
+		proj.vx = vel * math.cos(player.dir)
+		proj.vy = vel * math.sin(player.dir)
+		proj.timer = 10 --#seconds until projectile is destroyed (to avoid having thousands of stray bullets cause lag (esp. w/ collision checks)
+		table.insert(bullets,proj)
+		player.fireTime = 1/6
+	end
 end
 
 function love.draw()
