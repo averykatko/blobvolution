@@ -271,12 +271,12 @@ function updateCell(_n,dt)
 		c.dir = math.atan2(player.y-c.nucleus.y,player.x-c.nucleus.x)
 	end
 	local dir = c.dir
-	--[[if love.keyboard.isDown("right","left","down","up") then
+	--[[if love.keyboard.isDown("right","f","left","s","down","d","up","e") then
 		acc = mediumDamping * c.genes.speed
-		if love.keyboard.isDown("right") then dir = 0 end
-		if love.keyboard.isDown("left") then dir = math.pi  end
-		if love.keyboard.isDown("down") then dir = 0.5*math.pi end
-		if love.keyboard.isDown("up") then dir = 1.5*math.pi end
+		if love.keyboard.isDown("right","f") then dir = 0 end
+		if love.keyboard.isDown("left","s") then dir = math.pi  end
+		if love.keyboard.isDown("down","d") then dir = 0.5*math.pi end
+		if love.keyboard.isDown("up","e") then dir = 1.5*math.pi end
 	end]]
 	nax = nax + acc*math.cos(dir)
 	nay = nay + acc*math.sin(dir)
@@ -287,7 +287,7 @@ function updateCell(_n,dt)
 		local continue = false
 		local newax = 0
 		local neway = 0
-		--check for collisions:
+		--check for COLLISIONS:
 		--with player:
 		if distance(c.membrane[i],c.membrane[i+1],player.x,player.y) < plen+2 then
 			hitPlayer(1)
@@ -421,16 +421,16 @@ function love.update(dt)
 	if love.mouse.isDown("l","r") then fire(mx,my) end
 	
 	local md = nil
-	if love.keyboard.isDown("right") then
-		if love.keyboard.isDown("up") then md = 1.75*math.pi
-		elseif love.keyboard.isDown("down") then md = 0.25*math.pi
+	if love.keyboard.isDown("right","f") then
+		if love.keyboard.isDown("up","e") then md = 1.75*math.pi
+		elseif love.keyboard.isDown("down","d") then md = 0.25*math.pi
 		else md = 0 end
-	elseif love.keyboard.isDown("left") then
-		if love.keyboard.isDown("up") then md = 1.25*math.pi
-		elseif love.keyboard.isDown("down") then md = 0.75*math.pi
+	elseif love.keyboard.isDown("left","s") then
+		if love.keyboard.isDown("up","e") then md = 1.25*math.pi
+		elseif love.keyboard.isDown("down","d") then md = 0.75*math.pi
 		else md = math.pi end
-	elseif love.keyboard.isDown("up") then md = 1.5*math.pi
-	elseif love.keyboard.isDown("down") then md = 0.5*math.pi end
+	elseif love.keyboard.isDown("up","e") then md = 1.5*math.pi
+	elseif love.keyboard.isDown("down","d") then md = 0.5*math.pi end
 	
 	local nax,nay = 0,0
 	
@@ -537,5 +537,7 @@ function love.draw()
 		love.graphics.setColor(255,255,255,255)
 		love.graphics.polygon("line",c.membrane)
 		love.graphics.circle("line",c.nucleus.x,c.nucleus.y,2,10)
+		love.graphics.setColor(0,0,0,255)
+		for j = 1,c.mbsize,2 do love.graphics.point(c.membrane[j],c.membrane[j+1]) end
 	end
 end
