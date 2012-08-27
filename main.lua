@@ -43,6 +43,7 @@ end
 
 function love.load()
 	time = 0
+	paused = false
 	xmin = 0 -- -100
 	ymin = 0 -- -100
 	xmax = love.graphics.getWidth() -- + 100
@@ -80,12 +81,12 @@ end
 
 function mutate(c)
 	local g = c.genes
-	g.growtime = g.growtime + (math.random()-0.5)*0.01
+	--[[g.growtime = g.growtime + (math.random()-0.5)*0.01
 	if(g.growtime < 0.1) then g.growtime = 0.1 end
 	if 1 == math.random(6) then g.splitnodes = g.splitnodes + 2*(math.random(3) - 2) end
 	if(g.splitnodes < 12) then g.splitnodes = 12 end
-	g.speed = g.speed + (math.random()-0.5)
-	g.attackdist = g.attackdist + (math.random()-0.5)*10
+	--g.speed = g.speed + (math.random()-0.5)
+	g.attackdist = g.attackdist + (math.random()-0.5)*10]]
 	--c.genes.bombgrav = 0
 	--c.genes.attackstyle = "bump"
 	g.acidity = g.acidity + math.random(-5,5)
@@ -259,9 +260,9 @@ function updateCell(_n,dt)
 		newcell.dir = math.random()*2*math.pi
 		
 		cells[_n] = c
-		nCells = nCells + 1
-		cells[nCells] = newcell
-		--table.insert(cells,newcell)
+		--[[nCells = nCells + 1
+		cells[nCells] = newcell]]
+		table.insert(cells,newcell)
 	end
 	--END MITOSIS.
 	
@@ -410,6 +411,7 @@ function updateCell(_n,dt)
 end
 
 function love.update(dt)
+	if paused then return end
 	time = time + dt
 	player.hitTime = player.hitTime - dt
 	if player.hitTime < 0 then player.hitTime = 0 end
@@ -493,6 +495,10 @@ function love.update(dt)
 	if love.keyboard.isDown("escape") then love.graphics.toggleFullscreen() end
 end
 
+function love.keypressed(key)
+	if "p" == key then paused = not paused end
+end
+
 function hitPlayer(damage)
 	if 0 == player.hitTime then
 		player.hp = player.hp - damage
@@ -542,13 +548,13 @@ function love.draw()
 	for i,c in ipairs(cells) do
 		local red = 0
 		local green = 0
-		if c.genes.acidity > 0 then
+		--[[if c.genes.acidity > 0 then
 			--red = 4*c.genes.acidity
 			green = -4*c.genes.acidity
 		elseif c.genes.acidity < 0 then
 			red = -4*c.genes.acidity
 			--green = 4*c.genes.acidity
-		end
+		end]]
 		love.graphics.setColor(255-red,255-green,255-red-green,64)
 		love.graphics.polygon("fill",c.membrane)
 		love.graphics.setColor(255,255,255,255)
