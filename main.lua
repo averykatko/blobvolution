@@ -433,9 +433,18 @@ function love.update(dt)
 	player.vy = player.vy + (player.ay+nay)*dt/2
 	
 	--bullets
-	for i,b in ipairs(bullets) do
-		b.x = b.x + b.vx * dt
-		b.y = b.y + b.vy * dt
+	print("bullets:",table.getn(bullets))
+	local i = 1
+	while i <= table.getn(bullets) do
+		local b = bullets[i]
+		if(b.timer <= 0) then
+			table.remove(bullets,i)
+		else
+			b.x = b.x + b.vx * dt
+			b.y = b.y + b.vy * dt
+			b.timer = b.timer - dt
+			i = i + 1
+		end
 	end
 end
 
@@ -454,6 +463,7 @@ function love.mousepressed(x,y,button)
 	proj.y = player.y
 	proj.vx = vel * math.cos(player.dir)
 	proj.vy = vel * math.sin(player.dir)
+	proj.timer = 10 --#seconds until projectile is destroyed (to avoid having thousands of stray bullets cause lag (esp. w/ collision checks)
 	table.insert(bullets,proj)
 end
 
