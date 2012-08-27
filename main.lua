@@ -73,6 +73,20 @@ function fNucSpringLength(c)
 	return nucSpringLength --(nucSpringLength*c.mbsize/2)/(2*math.pi)
 end
 
+function mutate(c)
+	local g = c.genes
+	g.growtime = g.growtime + (math.random()-0.5)*0.01
+	if(g.growtime < 0.1) then g.growtime = 0.1 end
+	if 1 == math.random(6) then g.splitnodes = g.splitnodes + 2*(math.random(3) - 2) end
+	if(g.splitnodes < 12) then g.splitnodes = 12 end
+	g.speed = g.speed + (math.random()-0.5)
+	g.attackdist = g.attackdist + (math.random()-0.5)*10
+	--c.genes.bombgrav = 0
+	--c.genes.attackstyle = "bump"
+	g.acidity = g.acidity + math.random(-5,5)
+	--c.genes.damagestyle = "shrink"
+end
+
 function updateCell(_n,dt)
 	local c = cells[_n]
 	--print(_n,c)
@@ -230,8 +244,11 @@ function updateCell(_n,dt)
 			c.genes[k] = v
 			newcell.genes[k] = v
 		end
-		c.genes.acidity = c.genes.acidity + math.random(-5,5)
-		newcell.genes.acidity = newcell.genes.acidity + math.random(-5,5)
+		
+		mutate(c)
+		mutate(newcell)
+		--c.genes.acidity = c.genes.acidity + math.random(-5,5)
+		--newcell.genes.acidity = newcell.genes.acidity + math.random(-5,5)
 		
 		c.dir = math.random()*2*math.pi
 		newcell.dir = math.random()*2*math.pi
@@ -396,6 +413,10 @@ function love.update(dt)
 	end
 	
 	local mx,my = love.mouse.getPosition()
+	if USECAM then
+		mx = mx + player.x - love.graphics.getWidth()/2
+		my = my + player.y - love.graphics.getHeight()/2
+	end
 	player.dir = math.atan2(my-player.y,mx-player.x)
 	if love.mouse.isDown("l","r") then fire(mx,my) end
 	
@@ -451,6 +472,8 @@ function love.update(dt)
 			i = i + 1
 		end
 	end
+	
+	if love.keyboard.isDown("escape") then love.graphics.toggleFullscreen() end
 end
 
 function hitPlayer(damage)
@@ -478,6 +501,10 @@ end
 function love.draw()
 	--love.graphics.scale(3,3)
 	--love.graphics.scale(2,2)
+	if USECAM then
+		local height,width = love.graphics.getHeight(),love.graphics.getWidth()
+		love.graphics.translate(-player.x+width/2,-player.y+height/2)
+	end
 	--draw bullets:
 	for i,b in ipairs(bullets) do
 		love.graphics.setColor(255,255,0,255)
