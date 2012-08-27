@@ -18,7 +18,7 @@ function love.load()
 	memSpringDamping = 0
 	mediumDamping = 2
 	drag = 1
-	player = {x = 200, y = 150, vx = 0, vy = 0, ax = 0, ay = 0, dir = 0}
+	player = {x = 200, y = 150, vx = 0, vy = 0, ax = 0, ay = 0, dir = 0, hp = 10, lives = 3, hitTime = 0}
 	plen = 5
 	bullets = {}
 	cells = {}
@@ -255,7 +255,13 @@ function updateCell(_n,dt)
 	local i = 1
 	while i < c.mbsize do
 		local continue = false
+		local newax = 0
+		local neway = 0
 		--check for collisions:
+		--with player:
+		if distance(c.membrane[i],c.membrane[i+1],player.x,player.y) < plen+2 then
+			hitPlayer(1)
+		end
 		--with bullets:
 		local j = 1
 		while j <= table.getn(bullets) do
@@ -281,8 +287,6 @@ function updateCell(_n,dt)
 		c.membrane[i] = c.membrane[i] + c.membraneVel[i]*dt + 0.5*c.membraneAcc[i]*dt*dt --update x
 		c.membrane[i+1] = c.membrane[i+1] + c.membraneVel[i+1]*dt + 0.5*c.membraneAcc[i+1]*dt*dt --update y
 		--calculating acceleration:
-		local newax = 0
-		local neway = 0
 		
 		local accn = acc + 80*(math.random() - 0.5)
 		newax = newax + accn*math.cos(dir)
@@ -361,6 +365,8 @@ end
 
 function love.update(dt)
 	time = time + dt
+	player.hitTime = player.hitTime - dt
+	if player.hitTime < 0 then player.hitTime = 0 end
 	--print(time,1/dt)
 	--for i,c in ipairs(cells) do
 	local i = 1
@@ -420,6 +426,13 @@ function love.update(dt)
 	end
 end
 
+function hitPlayer(damage)
+	if 0 == player.hitTime then
+		player.hp = player.hp - damage
+		player.hitTime = 1
+	end
+end
+
 function love.mousepressed(x,y,button)
 	player.dir = math.atan2(y-player.y,x-player.x)
 	local proj = {}
@@ -441,7 +454,11 @@ function love.draw()
 	end
 	--draw player:
 	love.graphics.push()
-	love.graphics.setColor(255,255,0,255)
+	if 0 == player.hitTime then
+		love.graphics.setColor(255,255,0,255)
+	else
+		love.graphics.setColor(255,0,0,255)
+	end
 	love.graphics.translate(player.x,player.y)
 	love.graphics.rotate(player.dir)
 	love.graphics.translate(-player.x,-player.y)
