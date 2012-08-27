@@ -1,6 +1,10 @@
+function distance(x1,y1,x2,y2)
+	return math.sqrt((x2-x1)^2 + (y2-y1)^2)
+end
+
 function love.load()
 	time = 0
-	nInitCells = 1 --5
+	nInitCells = 5 --5
 	nCells = nInitCells
 	dist = 7
 	kbacc = 13
@@ -62,6 +66,7 @@ end
 
 function updateCell(_n,dt)
 	local c = cells[_n]
+	print(_n,c)
 	--print(c.membrane[1],c.membrane[2],c.membrane[mbsize-1],c.membrane[mbsize])
 	--print(c.nucleus.x,c.nucleus.y,c.nucleus.vx,c.nucleus.vy,c.nucleus.ax,c.nucleus.ay)
 	c.gtimer = c.gtimer + dt
@@ -249,6 +254,28 @@ function updateCell(_n,dt)
 	--Verlet integration
 	local i = 1
 	while i < c.mbsize do
+		local continue = false
+		--check for collisions:
+		--with bullets:
+		local j = 1
+		while j <= table.getn(bullets) do
+			if distance(c.membrane[i],c.membrane[i+1],bullets[j].x,bullets[j].y) < 4 then
+				table.remove(bullets,j)
+				table.remove(c.membrane,i)
+				table.remove(c.membrane,i)
+				table.remove(c.membraneVel,i)
+				table.remove(c.membraneVel,i)
+				table.remove(c.membraneAcc,i)
+				table.remove(c.membraneAcc,i)
+				table.remove(c.springs,(i+1)/2)
+				c.mbsize = table.getn(c.membrane)
+				continue = true
+				break
+			else
+			 	j = j + 1
+			end
+		end
+		if not continue then
 		--update position:
 		--print(i,c.mbsize)
 		c.membrane[i] = c.membrane[i] + c.membraneVel[i]*dt + 0.5*c.membraneAcc[i]*dt*dt --update x
@@ -315,6 +342,7 @@ function updateCell(_n,dt)
 		c.membraneAcc[i] = newax
 		c.membraneAcc[i+1] = neway
 		i = i + 2
+		end--if not continue; hackish workaround since Lua apparently doesn't have continue
 	end
 
 	--c.nucleus motion: (verlet)
@@ -334,8 +362,18 @@ end
 function love.update(dt)
 	time = time + dt
 	--print(time,1/dt)
-	for i,c in ipairs(cells) do
-		updateCell(i,dt)
+	--for i,c in ipairs(cells) do
+	local i = 1
+	while i <= table.getn(cells) do
+		if cells[i] then
+			updateCell(i,dt)
+			if table.getn(cells[i].membrane) < 6 then
+				table.remove(cells,i)
+				print("DESTROYED:",i)
+			else
+				i = i + 1
+			end
+		else i = i + 1 end
 	end
 	
 	local mx,my = love.mouse.getPosition()
@@ -395,7 +433,7 @@ end
 
 function love.draw()
 	--love.graphics.scale(3,3)
-	love.graphics.scale(2,2)
+	--love.graphics.scale(2,2)
 	--draw bullets:
 	for i,b in ipairs(bullets) do
 		love.graphics.setColor(255,255,0,255)
