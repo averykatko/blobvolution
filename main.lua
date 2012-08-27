@@ -2,6 +2,45 @@ function distance(x1,y1,x2,y2)
 	return math.sqrt((x2-x1)^2 + (y2-y1)^2)
 end
 
+function newCell(x, y)
+		cell = {}
+		cell.nucleus = {x=x,y=y,vx=0,vy=0,ax=0,ay=0}
+
+        cell.membrane = {}
+        for i = 1, 23, 2 do
+           cell.membrane[i] = x+50*math.cos(math.rad(15*i))
+           cell.membrane[i+1] = y+50*math.sin(math.rad(15*i))
+        end
+		cell.mbsize = table.getn(cell.membrane)
+
+		cell.springs = {}
+		for i = 1,13 do cell.springs[i] = fNucSpringLength(cell) end
+		cell.membraneVel = { }
+		for i = 1,cell.mbsize do
+			cell.membraneVel[i] = 0 --set initial velocities to zero
+		end
+		--membraneVel[1] = 0.5
+		--membraneVel[2] = 0.5
+		cell.membraneAcc = { }
+		for i = 1,cell.mbsize do
+			cell.membraneAcc[i] = 0 --set initial acceleration to zero
+		end
+		cell.genes = {}
+		cell.genes.growtime = 2 --1 --time to grow a new node, in seconds
+		cell.genes.splitnodes = 18 --18 --# membrane nodes to divide at
+		cell.genes.speed = 15 --15 --movement speed
+		cell.genes.attackdist = 100 --how close it has to be to player to attack
+		cell.genes.bombgrav = 0 --how attracted (+) or repelled (-) it is by bombs
+		cell.genes.attackstyle = "bump" --either "bump" or "engulf"
+		cell.genes.acidity = 0 --how much player is damaged when inside cell
+		cell.genes.damagestyle = "shrink" --either "shrink" or "split"
+		
+		cell.gtimer = 0 --in seconds
+		cell.dir = math.random()*2*math.pi --movement direction
+
+        return cell
+end
+
 function love.load()
 	time = 0
 	nInitCells = 5 --5
@@ -23,37 +62,7 @@ function love.load()
 	bullets = {}
 	cells = {}
 	for i = 1,nInitCells do
-		cells[i] = {}
-		cells[i].nucleus = {x=112*i,y=103*i,vx=0,vy=0,ax=0,ay=0}
-		cells[i].membrane = {100,100; 105,95; 110,95; 115,90; 120,95; 120,100; 125,105; 125,110; 120,115; 115,115; 110,110; 105,110; 100,105}
-		cells[i].mbsize = table.getn(cells[i].membrane)
-		for j = 1,cells[i].mbsize do
-			cells[i].membrane[j] = cells[i].membrane[j] * i
-		end
-		cells[i].springs = {}
-		for j = 1,13 do cells[i].springs[j] = fNucSpringLength(cells[i]) end
-		cells[i].membraneVel = { }
-		for j = 1,cells[i].mbsize do
-			cells[i].membraneVel[j] = 0 --set initial velocities to zero
-		end
-		--membraneVel[1] = 0.5
-		--membraneVel[2] = 0.5
-		cells[i].membraneAcc = { }
-		for j = 1,cells[i].mbsize do
-			cells[i].membraneAcc[j] = 0 --set initial acceleration to zero
-		end
-		cells[i].genes = {}
-		cells[i].genes.growtime = 2 --1 --time to grow a new node, in seconds
-		cells[i].genes.splitnodes = 18 --18 --# membrane nodes to divide at
-		cells[i].genes.speed = 15 --15 --movement speed
-		cells[i].genes.attackdist = 100 --how close it has to be to player to attack
-		cells[i].genes.bombgrav = 0 --how attracted (+) or repelled (-) it is by bombs
-		cells[i].genes.attackstyle = "bump" --either "bump" or "engulf"
-		cells[i].genes.acidity = 0 --how much player is damaged when inside cell
-		cells[i].genes.damagestyle = "shrink" --either "shrink" or "split"
-		
-		cells[i].gtimer = 0 --in seconds
-		cells[i].dir = math.random()*2*math.pi --movement direction
+       cells[i] = newCell(112*i, 103*i)
 	end
 	love.graphics.setBackgroundColor(128,128,255)
 	--love.graphics.setBackgroundColor(0,0,128)
