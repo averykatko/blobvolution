@@ -46,7 +46,7 @@ function love.load()
 		cells[i].genes.growtime = 2 --1 --time to grow a new node, in seconds
 		cells[i].genes.splitnodes = 18 --18 --# membrane nodes to divide at
 		cells[i].genes.speed = 15 --15 --movement speed
-		cells[i].genes.attackdist = 25 --how close it has to be to player to attack
+		cells[i].genes.attackdist = 100 --how close it has to be to player to attack
 		cells[i].genes.bombgrav = 0 --how attracted (+) or repelled (-) it is by bombs
 		cells[i].genes.attackstyle = "bump" --either "bump" or "engulf"
 		cells[i].genes.acidity = 0 --how much player is damaged when inside cell
@@ -240,6 +240,10 @@ function updateCell(_n,dt)
 	
 	--acceleration for constant speed
 	local acc = mediumDamping * c.genes.speed
+	
+	if distance(c.nucleus.x,c.nucleus.y,player.x,player.y) <= c.genes.attackdist then
+		c.dir = math.atan2(player.y-c.nucleus.y,player.x-c.nucleus.x)
+	end
 	local dir = c.dir
 	--[[if love.keyboard.isDown("right","left","down","up") then
 		acc = mediumDamping * c.genes.speed
