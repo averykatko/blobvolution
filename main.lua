@@ -63,7 +63,8 @@ function love.load()
 	memSpringDamping = 0
 	mediumDamping = 2
 	drag = 1
-	player = {x = 200, y = 150, vx = 0, vy = 0, ax = 0, ay = 0, dir = 0, hp = 10, lives = 3, hitTime = 0, fireTime = 0}
+	inithp = 10
+	player = {x = 200, y = 150, vx = 0, vy = 0, ax = 0, ay = 0, dir = 0, hp = inithp, lives = 3, hitTime = 0, fireTime = 0}
 	plen = 5
 	bullets = {}
 	cells = {}
@@ -81,15 +82,16 @@ end
 
 function mutate(c)
 	local g = c.genes
-	--[[g.growtime = g.growtime + (math.random()-0.5)*0.01
+	--g.growtime = g.growtime + (math.random()-0.5)*0.01
+	if 1 == math.random(10) then g.growtime = g.growtime + math.random(3) - 2 end
 	if(g.growtime < 0.1) then g.growtime = 0.1 end
 	if 1 == math.random(6) then g.splitnodes = g.splitnodes + 2*(math.random(3) - 2) end
 	if(g.splitnodes < 12) then g.splitnodes = 12 end
 	--g.speed = g.speed + (math.random()-0.5)
-	g.attackdist = g.attackdist + (math.random()-0.5)*10]]
+	--g.attackdist = g.attackdist + (math.random()-0.5)*10
 	--c.genes.bombgrav = 0
 	--c.genes.attackstyle = "bump"
-	g.acidity = g.acidity + math.random(-5,5)
+	--g.acidity = g.acidity + math.random(-5,5)
 	--c.genes.damagestyle = "shrink"
 end
 
@@ -287,12 +289,16 @@ function updateCell(_n,dt)
 	nax = nax + acc*math.cos(dir)
 	nay = nay + acc*math.sin(dir)
 	
+	local avgx = 0
+	local avgy = 0
 	--Verlet integration
 	local i = 1
 	while i < c.mbsize do
 		local continue = false
 		local newax = 0
 		local neway = 0
+		avgx = avgx + c.membrane[i]
+		avgy = avgy + c.membrane[i+1]
 		--check for COLLISIONS:
 		--with player:
 		if distance(c.membrane[i],c.membrane[i+1],player.x,player.y) < plen+2 then
@@ -395,6 +401,14 @@ function updateCell(_n,dt)
 		i = i + 2
 		end--if not continue; hackish workaround since Lua apparently doesn't have continue
 	end
+
+	avgx = avgx / table.getn(c.membrane)
+	avgy = avgy / table.getn(c.membrane)
+	
+	--[[if distance(avgx,avgy,c.nucleus.x,c.nucleus.y) > nucSpringLength then
+		c.nucleus.x = avgx
+		c.nucleus.y = avgy
+	end]]
 
 	--c.nucleus motion: (verlet)
 	c.nucleus.x = c.nucleus.x + c.nucleus.vx*dt + 0.5*c.nucleus.ax*dt*dt
@@ -503,6 +517,12 @@ function hitPlayer(damage)
 	if 0 == player.hitTime then
 		player.hp = player.hp - damage
 		player.hitTime = 1
+		if player.hp <= 0 then
+			player.lives = player.lives - 1
+			player.hp = inithp
+			if player.lives < 0 then
+			end
+		end
 	end
 end
 
@@ -564,4 +584,5 @@ function love.draw()
 		for j = 1,c.mbsize,2 do love.graphics.point(c.membrane[j],c.membrane[j+1]) end
 	end
 	for i,p in ipairs(debugPts) do love.graphics.circle("fill",p.x,p.y,p.r) end
+	love.graphics.print("HP: " .. player.hp .. "   Lives: " .. player.lives , 0,0)
 end
