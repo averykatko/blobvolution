@@ -1,6 +1,11 @@
 love.filesystem.load("defs.lua")()
+
+function addCell(c)
+	table.insert(cells,c)
+end
+
 function newCell(x, y)
-		cell = {}
+		local cell = {}
 		cell.nucleus = {x=x,y=y,vx=0,vy=0,ax=0,ay=0}
 
         cell.membrane = {}
@@ -53,6 +58,139 @@ function mutate(c)
 	--c.genes.damagestyle = "shrink"
 end
 
+function grow(c)
+	--insert new node into random part of membrane:
+	local idx = math.random(c.mbsize-1)
+	local idx2 = idx - 2
+	if idx2 < 1 then idx2 = c.mbsize-1 end
+	local nx = (c.membrane[idx2]+c.membrane[idx])/2 -- average of surrounding node x coords
+	local ny = (c.membrane[idx2+1]+c.membrane[idx+1])/2 -- " " y coords
+	table.insert(c.membrane,idx,nx)
+	table.insert(c.membrane,idx+1,ny)
+	local nvx = (c.membraneVel[idx2]+c.membraneVel[idx])/2 -- average of surrounding node vx coords
+	local nvy = (c.membraneVel[idx2+1]+c.membraneVel[idx+1])/2 -- " " vy coords
+	table.insert(c.membraneVel,idx,nvx)
+	table.insert(c.membraneVel,idx+1,nvy)
+	local nodax = (c.membraneAcc[idx2]+c.membraneAcc[idx])/2 -- average of surrounding node ax coords
+	local noday = (c.membraneAcc[idx2+1]+c.membraneAcc[idx+1])/2 -- " " ay coords
+	table.insert(c.membraneAcc,idx,nodax)
+	table.insert(c.membraneAcc,idx+1,noday)
+	--add spring to nucleus:
+	table.insert(c.springs,(idx+1)/2,fNucSpringLength(c))
+	c.mbsize = table.getn(c.membrane)
+end
+
+function mitosis(_n)
+	local c = cells[_n]
+	--[[io.write("c: {")
+	for itr = 1,c.mbsize do io.write(c.membrane[itr]," ") end
+	io.write("}\n")]]
+	local split = (c.mbsize/2)+1 --divide in two; currently just midpoint; should do random split maybe?
+	print("split:",split)
+	local oldc = c
+	io.write("oldc: {")
+	for itr = 1,oldc.mbsize do io.write(oldc.membrane[itr]," ") end
+	io.write("}\n")
+	c = {}
+	c.membrane = {}
+	c.membraneVel = {}
+	c.membraneAcc = {}
+	c.springs = {}
+	c.nucleus = {}
+	local newcell = {}
+	newcell.membrane = {}
+	newcell.membraneVel = {}
+	newcell.membraneAcc = {}
+	newcell.springs = {}
+	newcell.nucleus = {}
+	for i = 1,split-1 do
+		c.membrane[i] = oldc.membrane[i]
+		c.membraneVel[i] = oldc.membraneVel[i]
+		c.membraneAcc[i] = oldc.membraneAcc[i]
+	end
+	for i = split,oldc.mbsize do
+		newcell.membrane[i+1-split] = oldc.membrane[i]
+		newcell.membraneVel[i+1-split] = oldc.membraneVel[i]
+		newcell.membraneAcc[i+1-split] = oldc.membraneAcc[i]
+	end
+	--add extra node
+	c.membrane[split] = oldc.nucleus.x
+	c.membrane[split+1] = oldc.nucleus.y
+	c.membraneVel[split] = oldc.nucleus.vx
+	c.membraneVel[split+1] = oldc.nucleus.vy
+	c.membraneAcc[split] = oldc.nucleus.ax
+	c.membraneAcc[split+1] = oldc.nucleus.ay
+	
+	c.mbsize = table.getn(c.membrane)
+	for itr = 1,c.mbsize/2 do c.springs[itr] = fNucSpringLength(c) end
+	io.write("c: {")
+	for itr = 1,c.mbsize do io.write(c.membrane[itr]," ") end
+	io.write("}\n")
+	newcell.mbsize = table.getn(newcell.membrane)
+	
+	newcell.membrane[newcell.mbsize+1] = oldc.nucleus.x
+	newcell.membrane[newcell.mbsize+2] = oldc.nucleus.y
+	newcell.membraneVel[newcell.mbsize+1] = oldc.nucleus.vx
+	newcell.membraneVel[newcell.mbsize+2] = oldc.nucleus.vy
+	newcell.membraneAcc[newcell.mbsize+1] = oldc.nucleus.ax
+	newcell.membraneAcc[newcell.mbsize+2] = oldc.nucleus.ay
+	
+	newcell.mbsize = table.getn(newcell.membrane)
+	for itr = 1,newcell.mbsize/2 do newcell.springs[itr] = fNucSpringLength(newcell) end
+	print("n mbsz",newcell.mbsize)
+	io.write("newcell: {")
+	for itr = 1,newcell.mbsize do io.write(newcell.membrane[itr]," ") end
+	io.write("}\n")
+	local cnx = 0
+	local cny = 0
+	local j = 1
+	while j < c.mbsize do
+		cnx = cnx + c.membrane[j]
+		cny = cny + c.membrane[j+1]
+		j = j + 2
+	end
+	c.nucleus.x = cnx/(c.mbsize/2)
+	c.nucleus.y = cny/(c.mbsize/2)
+	c.nucleus.vx = oldc.nucleus.vx -- / 2
+	c.nucleus.vy = oldc.nucleus.vy -- / 2
+	c.nucleus.ax = oldc.nucleus.ax --0
+	c.nucleus.ay = oldc.nucleus.ay --0
+	local nnx = 0
+	local nny = 0
+	local j = 1
+	while j < newcell.mbsize do
+		nnx = nnx + newcell.membrane[j]
+		nny = nny + newcell.membrane[j+1]
+		j = j + 2
+	end
+	newcell.nucleus.x = nnx/(newcell.mbsize/2)
+	newcell.nucleus.y = nny/(newcell.mbsize/2)
+	newcell.nucleus.vx = oldc.nucleus.vx -- / 2
+	newcell.nucleus.vy = oldc.nucleus.vy -- / 2
+	newcell.nucleus.ax = oldc.nucleus.ax --0
+	newcell.nucleus.ay = oldc.nucleus.ay --0
+	
+	--TODO: mutations
+	c.genes = {}
+	c.gtimer = 0
+	newcell.genes = {}
+	newcell.gtimer = 0
+	
+	for k,v in pairs(oldc.genes) do
+		c.genes[k] = v
+		newcell.genes[k] = v
+	end
+	
+	mutate(c)
+	mutate(newcell)
+	
+	c.dir = math.random()*2*math.pi
+	newcell.dir = math.random()*2*math.pi
+	
+	cells[_n] = c
+	addCell(newcell)
+end
+
 function updateCell(_n,dt)
 	local c = cells[_n]
 	--print(_n,c)
@@ -61,168 +199,12 @@ function updateCell(_n,dt)
 	c.gtimer = c.gtimer + dt
 	if c.gtimer >= c.genes.growtime then --grow
 		c.gtimer = c.gtimer - c.genes.growtime --reset timer
-		--insert new node into random part of membrane:
-		local idx = math.random(c.mbsize-1)
-		local idx2 = idx - 2
-		if idx2 < 1 then idx2 = c.mbsize-1 end
-		local nx = (c.membrane[idx2]+c.membrane[idx])/2 -- average of surrounding node x coords
-		local ny = (c.membrane[idx2+1]+c.membrane[idx+1])/2 -- " " y coords
-		table.insert(c.membrane,idx,nx)
-		table.insert(c.membrane,idx+1,ny)
-		local nvx = (c.membraneVel[idx2]+c.membraneVel[idx])/2 -- average of surrounding node vx coords
-		local nvy = (c.membraneVel[idx2+1]+c.membraneVel[idx+1])/2 -- " " vy coords
-		table.insert(c.membraneVel,idx,nvx)
-		table.insert(c.membraneVel,idx+1,nvy)
-		local nodax = (c.membraneAcc[idx2]+c.membraneAcc[idx])/2 -- average of surrounding node ax coords
-		local noday = (c.membraneAcc[idx2+1]+c.membraneAcc[idx+1])/2 -- " " ay coords
-		table.insert(c.membraneAcc,idx,nodax)
-		table.insert(c.membraneAcc,idx+1,noday)
-		--add spring to nucleus:
-		table.insert(c.springs,(idx+1)/2,fNucSpringLength(c))
-		c.mbsize = table.getn(c.membrane)
+		grow(c)
 	end
 	
 	--BEGIN MITOSIS:
 	if c.mbsize/2 >= c.genes.splitnodes then --mitosis!
-		--[[io.write("c: {")
-		for itr = 1,c.mbsize do io.write(c.membrane[itr]," ") end
-		io.write("}\n")]]
-		local split = (c.mbsize/2)+1 --divide in two; currently just midpoint; should do random split maybe?
-		print("split:",split)
-		local oldc = c
-		io.write("oldc: {")
-		for itr = 1,oldc.mbsize do io.write(oldc.membrane[itr]," ") end
-		io.write("}\n")
-		--print(oldc)
-		c = {}
-		c.membrane = {}
-		--print(c,oldc)
-		c.membraneVel = {}
-		c.membraneAcc = {}
-		c.springs = {}
-		c.nucleus = {}
-		local newcell = {}
-		newcell.membrane = {}
-		newcell.membraneVel = {}
-		newcell.membraneAcc = {}
-		newcell.springs = {}
-		newcell.nucleus = {}
-		for i = 1,split-1 do
-			--print(oldc.membrane[i])
-			c.membrane[i] = oldc.membrane[i]
-			--print(c.membrane[i])
-			c.membraneVel[i] = oldc.membraneVel[i]
-			c.membraneAcc[i] = oldc.membraneAcc[i]
-			--[[if (math.floor(i/2) ~= i/2) then
-				c.springs[(i+1)/2] = oldc.springs[(i+1)/2]
-			end]]
-		end
-		for i = split,oldc.mbsize do
-			newcell.membrane[i+1-split] = oldc.membrane[i]
-			--print(newcell.membrane[i+1-split])
-			newcell.membraneVel[i+1-split] = oldc.membraneVel[i]
-			newcell.membraneAcc[i+1-split] = oldc.membraneAcc[i]
-			--[[if (math.floor(i/2) ~= i/2) then
-				newcell.springs[(i+2-split)/2] = oldc.springs[(i+1)/2]
-			end]]
-			--[[table.insert(newcell.membrane,i,table.remove(c.membrane,i))
-			table.insert(newcell.membraneVel,i,table.remove(c.membraneVel,i))
-			table.insert(newcell.membraneAcc,i,table.remove(c.membraneAcc,i))
-			if (math.floor(i/2) ~= i/2) then --since springs array has half as many elements
-				table.insert(newcell.springs,(i+1)/2,table.remove(c.springs,(i+1)/2))
-			end]]
-		end
-		--add extra node
-		c.membrane[split] = oldc.nucleus.x
-		c.membrane[split+1] = oldc.nucleus.y
-		c.membraneVel[split] = oldc.nucleus.vx
-		c.membraneVel[split+1] = oldc.nucleus.vy
-		c.membraneAcc[split] = oldc.nucleus.ax
-		c.membraneAcc[split+1] = oldc.nucleus.ay
-		
-		--[[newcell.membrane[oldc.mbsize+1-split] = oldc.nucleus.x
-		newcell.membrane[oldc.mbsize+1-split+1] = oldc.nucleus.y
-		newcell.membraneVel[(oldc.mbsize+1)-split] = oldc.nucleus.vx
-		newcell.membraneVel[(oldc.mbsize+2)-split] = oldc.nucleus.vy
-		newcell.membraneAcc[(oldc.mbsize+1)-split] = oldc.nucleus.ax
-		newcell.membraneAcc[(oldc.mbsize+2)-split] = oldc.nucleus.ay]]
-		
-		c.mbsize = table.getn(c.membrane)
-		for itr = 1,c.mbsize/2 do c.springs[itr] = fNucSpringLength(c) end
-		io.write("c: {")
-		for itr = 1,c.mbsize do io.write(c.membrane[itr]," ") end
-		io.write("}\n")
-		newcell.mbsize = table.getn(newcell.membrane)
-		
-		newcell.membrane[newcell.mbsize+1] = oldc.nucleus.x
-		newcell.membrane[newcell.mbsize+2] = oldc.nucleus.y
-		newcell.membraneVel[newcell.mbsize+1] = oldc.nucleus.vx
-		newcell.membraneVel[newcell.mbsize+2] = oldc.nucleus.vy
-		newcell.membraneAcc[newcell.mbsize+1] = oldc.nucleus.ax
-		newcell.membraneAcc[newcell.mbsize+2] = oldc.nucleus.ay
-		
-		newcell.mbsize = table.getn(newcell.membrane)
-		for itr = 1,newcell.mbsize/2 do newcell.springs[itr] = fNucSpringLength(newcell) end
-		print("n mbsz",newcell.mbsize)
-		io.write("newcell: {")
-		for itr = 1,newcell.mbsize do io.write(newcell.membrane[itr]," ") end
-		io.write("}\n")
-		local cnx = 0
-		local cny = 0
-		local j = 1
-		while j < c.mbsize do
-			cnx = cnx + c.membrane[j]
-			cny = cny + c.membrane[j+1]
-			j = j + 2
-		end
-		--[[newcell.nucleus.x = cnx/(c.mbsize/2)
-		newcell.nucleus.y = cny/(c.mbsize/2)]]
-		c.nucleus.x = cnx/(c.mbsize/2)
-		c.nucleus.y = cny/(c.mbsize/2)
-		c.nucleus.vx = oldc.nucleus.vx -- / 2
-		c.nucleus.vy = oldc.nucleus.vy -- / 2
-		c.nucleus.ax = oldc.nucleus.ax --0
-		c.nucleus.ay = oldc.nucleus.ay --0
-		local nnx = 0
-		local nny = 0
-		local j = 1
-		while j < newcell.mbsize do
-			nnx = nnx + newcell.membrane[j]
-			nny = nny + newcell.membrane[j+1]
-			j = j + 2
-		end
-		--[[c.nucleus.x = nnx/(newcell.mbsize/2)
-		c.nucleus.y = nny/(newcell.mbsize/2)]]
-		newcell.nucleus.x = nnx/(newcell.mbsize/2)
-		newcell.nucleus.y = nny/(newcell.mbsize/2)
-		newcell.nucleus.vx = oldc.nucleus.vx -- / 2
-		newcell.nucleus.vy = oldc.nucleus.vy -- / 2
-		newcell.nucleus.ax = oldc.nucleus.ax --0
-		newcell.nucleus.ay = oldc.nucleus.ay --0
-		
-		--TODO: mutations
-		c.genes = {}
-		c.gtimer = 0
-		newcell.genes = {}
-		newcell.gtimer = 0
-		
-		for k,v in pairs(oldc.genes) do
-			c.genes[k] = v
-			newcell.genes[k] = v
-		end
-		
-		mutate(c)
-		mutate(newcell)
-		--c.genes.acidity = c.genes.acidity + math.random(-5,5)
-		--newcell.genes.acidity = newcell.genes.acidity + math.random(-5,5)
-		
-		c.dir = math.random()*2*math.pi
-		newcell.dir = math.random()*2*math.pi
-		
-		cells[_n] = c
-		--[[nCells = nCells + 1
-		cells[nCells] = newcell]]
-		table.insert(cells,newcell)
+		mitosis(_n)
 	end
 	--END MITOSIS.
 	
