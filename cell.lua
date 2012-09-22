@@ -4,43 +4,51 @@ function addCell(c)
 	table.insert(cells,c)
 end
 
+function newNode(x,y,vx,vy,ax,ay)
+	return {x=x,y=y,vx=vx,vy=vy,ax=ax,ay=ay}
+end
+
+function insertNode(m,idx,n)
+	table.insert(m,idx,n)
+end
+
 function newCell(x, y)
-		local cell = {}
-		cell.nucleus = {x=x,y=y,vx=0,vy=0,ax=0,ay=0}
+	local cell = {}
+	cell.nucleus = {x=x,y=y,vx=0,vy=0,ax=0,ay=0}
 
-        cell.membrane = {}
-        for i = 1, 23, 2 do
-           cell.membrane[i] = x+50*math.cos(math.rad(15*i))
-           cell.membrane[i+1] = y+50*math.sin(math.rad(15*i))
-        end
-		cell.mbsize = table.getn(cell.membrane)
+	cell.membrane = {}
+	for i = 1,13 do
+		cell.membrane[i] = {x=x+50*math.cos(math.rad(15*i)),y=y+50*math.sin(math.rad(15*i)),vx=0,vy=0,ax=0,ay=0}
+		--cell.membrane[i] = x+50*math.cos(math.rad(15*i))
+		--cell.membrane[i+1] = y+50*math.sin(math.rad(15*i))
+	end
+	cell.mbsize = table.getn(cell.membrane)
 
-		cell.springs = {}
-		for i = 1,13 do cell.springs[i] = fNucSpringLength(cell) end
-		cell.membraneVel = { }
-		for i = 1,cell.mbsize do
-			cell.membraneVel[i] = 0 --set initial velocities to zero
-		end
-		--membraneVel[1] = 0.5
-		--membraneVel[2] = 0.5
-		cell.membraneAcc = { }
-		for i = 1,cell.mbsize do
-			cell.membraneAcc[i] = 0 --set initial acceleration to zero
-		end
-		cell.genes = {}
-		cell.genes.growtime = 2 --1 --time to grow a new node, in seconds
-		cell.genes.splitnodes = 18 --18 --# membrane nodes to divide at
-		cell.genes.speed = 15 --15 --movement speed
-		cell.genes.attackdist = 100 --how close it has to be to player to attack
-		cell.genes.bombgrav = 0 --how attracted (+) or repelled (-) it is by bombs
-		cell.genes.attackstyle = "bump" --either "bump" or "engulf"
-		cell.genes.acidity = 0 --how much player is damaged when inside cell
-		cell.genes.damagestyle = "shrink" --either "shrink" or "split"
-		
-		cell.gtimer = 0 --in seconds
-		cell.dir = math.random()*2*math.pi --movement direction
-
-        return cell
+	cell.springs = {}
+	for i = 1,13 do cell.springs[i] = fNucSpringLength(cell) end
+	cell.membraneVel = { }
+	for i = 1,cell.mbsize do
+		cell.membraneVel[i] = 0 --set initial velocities to zero
+	end
+	--membraneVel[1] = 0.5
+	--membraneVel[2] = 0.5
+	cell.membraneAcc = { }
+	for i = 1,cell.mbsize do
+		cell.membraneAcc[i] = 0 --set initial acceleration to zero
+	end
+	cell.genes = {}
+	cell.genes.growtime = 2 --1 --time to grow a new node, in seconds
+	cell.genes.splitnodes = 18 --18 --# membrane nodes to divide at
+	cell.genes.speed = 15 --15 --movement speed
+	cell.genes.attackdist = 100 --how close it has to be to player to attack
+	cell.genes.bombgrav = 0 --how attracted (+) or repelled (-) it is by bombs
+	cell.genes.attackstyle = "bump" --either "bump" or "engulf"
+	cell.genes.acidity = 0 --how much player is damaged when inside cell
+	cell.genes.damagestyle = "shrink" --either "shrink" or "split"
+	
+	cell.gtimer = 0 --in seconds
+	cell.dir = math.random()*2*math.pi --movement direction
+	return cell
 end
 
 function mutate(c)
@@ -82,104 +90,59 @@ end
 
 function mitosis(_n)
 	local c = cells[_n]
-	--[[io.write("c: {")
-	for itr = 1,c.mbsize do io.write(c.membrane[itr]," ") end
-	io.write("}\n")]]
-	local split = (c.mbsize/2)+1 --divide in two; currently just midpoint; should do random split maybe?
-	print("split:",split)
+	local oldsize = table.getn(c.membrane)
+	local split = oldsize/2
 	local oldc = c
-	io.write("oldc: {")
-	for itr = 1,oldc.mbsize do io.write(oldc.membrane[itr]," ") end
-	io.write("}\n")
 	c = {}
 	c.membrane = {}
-	c.membraneVel = {}
-	c.membraneAcc = {}
-	c.springs = {}
 	c.nucleus = {}
+	
 	local newcell = {}
 	newcell.membrane = {}
-	newcell.membraneVel = {}
-	newcell.membraneAcc = {}
-	newcell.springs = {}
 	newcell.nucleus = {}
+	
 	for i = 1,split-1 do
 		c.membrane[i] = oldc.membrane[i]
-		c.membraneVel[i] = oldc.membraneVel[i]
-		c.membraneAcc[i] = oldc.membraneAcc[i]
 	end
-	for i = split,oldc.mbsize do
+	table.insert(c.membrane,table.copy(oldc.nucleus))
+	
+	for i = split,oldsize do
 		newcell.membrane[i+1-split] = oldc.membrane[i]
-		newcell.membraneVel[i+1-split] = oldc.membraneVel[i]
-		newcell.membraneAcc[i+1-split] = oldc.membraneAcc[i]
 	end
-	--add extra node
-	c.membrane[split] = oldc.nucleus.x
-	c.membrane[split+1] = oldc.nucleus.y
-	c.membraneVel[split] = oldc.nucleus.vx
-	c.membraneVel[split+1] = oldc.nucleus.vy
-	c.membraneAcc[split] = oldc.nucleus.ax
-	c.membraneAcc[split+1] = oldc.nucleus.ay
+	table.insert(newcell.membrane,table.copy(oldc.nucleus))
 	
-	c.mbsize = table.getn(c.membrane)
-	for itr = 1,c.mbsize/2 do c.springs[itr] = fNucSpringLength(c) end
-	io.write("c: {")
-	for itr = 1,c.mbsize do io.write(c.membrane[itr]," ") end
-	io.write("}\n")
-	newcell.mbsize = table.getn(newcell.membrane)
-	
-	newcell.membrane[newcell.mbsize+1] = oldc.nucleus.x
-	newcell.membrane[newcell.mbsize+2] = oldc.nucleus.y
-	newcell.membraneVel[newcell.mbsize+1] = oldc.nucleus.vx
-	newcell.membraneVel[newcell.mbsize+2] = oldc.nucleus.vy
-	newcell.membraneAcc[newcell.mbsize+1] = oldc.nucleus.ax
-	newcell.membraneAcc[newcell.mbsize+2] = oldc.nucleus.ay
-	
-	newcell.mbsize = table.getn(newcell.membrane)
-	for itr = 1,newcell.mbsize/2 do newcell.springs[itr] = fNucSpringLength(newcell) end
-	print("n mbsz",newcell.mbsize)
-	io.write("newcell: {")
-	for itr = 1,newcell.mbsize do io.write(newcell.membrane[itr]," ") end
-	io.write("}\n")
 	local cnx = 0
 	local cny = 0
-	local j = 1
-	while j < c.mbsize do
-		cnx = cnx + c.membrane[j]
-		cny = cny + c.membrane[j+1]
-		j = j + 2
+	local csize = table.getn(c.membrane)
+	for i = 1,csize do
+		cnx = cnx + c.membrane[i].x
+		cny = cny + c.membrane[i].y
 	end
-	c.nucleus.x = cnx/(c.mbsize/2)
-	c.nucleus.y = cny/(c.mbsize/2)
+	c.nucleus.x = cnx/csize
+	c.nucleus.y = cny/csize
 	c.nucleus.vx = oldc.nucleus.vx -- / 2
 	c.nucleus.vy = oldc.nucleus.vy -- / 2
 	c.nucleus.ax = oldc.nucleus.ax --0
 	c.nucleus.ay = oldc.nucleus.ay --0
+	
 	local nnx = 0
 	local nny = 0
-	local j = 1
-	while j < newcell.mbsize do
-		nnx = nnx + newcell.membrane[j]
-		nny = nny + newcell.membrane[j+1]
-		j = j + 2
+	local nsize = table.getn(newcell.membrane)
+	for i = 1,nsize do
+		nnx = nnx + newcell.membrane[i].x
+		nny = nny + newcell.membrane[i].y
 	end
-	newcell.nucleus.x = nnx/(newcell.mbsize/2)
-	newcell.nucleus.y = nny/(newcell.mbsize/2)
+	newcell.nucleus.x = nnx/nsize
+	newcell.nucleus.y = nny/nsize
 	newcell.nucleus.vx = oldc.nucleus.vx -- / 2
 	newcell.nucleus.vy = oldc.nucleus.vy -- / 2
 	newcell.nucleus.ax = oldc.nucleus.ax --0
 	newcell.nucleus.ay = oldc.nucleus.ay --0
 	
-	--TODO: mutations
-	c.genes = {}
+	c.genes = table.copy(oldc.genes)
 	c.gtimer = 0
-	newcell.genes = {}
+	newcell.genes = table.copy(oldc.genes)
 	newcell.gtimer = 0
-	
-	for k,v in pairs(oldc.genes) do
-		c.genes[k] = v
-		newcell.genes[k] = v
-	end
 	
 	mutate(c)
 	mutate(newcell)
