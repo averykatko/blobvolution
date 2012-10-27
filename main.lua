@@ -185,22 +185,7 @@ function love.draw()
 	love.graphics.polygon("fill",player.x+2*plen,player.y, player.x-2*plen,player.y+plen, player.x-2*plen,player.y-plen)
 	love.graphics.pop()
 	for i,c in ipairs(cells) do
-		local red = 0
-		local green = 0
-		if c.genes.acidity > 0 then
-			--red = 4*c.genes.acidity
-			green = -4*c.genes.acidity
-		elseif c.genes.acidity < 0 then
-			red = -4*c.genes.acidity
-			--green = 4*c.genes.acidity
-		end
-		love.graphics.setColor(255-red,255-green,255-red-green,64)
-		love.graphics.polygon("fill",c.membrane)
-		love.graphics.setColor(255,255,255,255)
-		love.graphics.polygon("line",c.membrane)
-		love.graphics.circle("line",c.nucleus.x,c.nucleus.y,2,10)
-		love.graphics.setColor(0,0,0,255)
-		for j = 1,c.mbsize,2 do love.graphics.point(c.membrane[j],c.membrane[j+1]) end
+		drawCell(c)
 	end
 	for i,p in ipairs(debugPts) do love.graphics.circle("fill",p.x,p.y,p.r) end
 	love.graphics.print("HP: " .. player.hp .. "   Lives: " .. player.lives , 0,0)

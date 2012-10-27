@@ -22,20 +22,11 @@ function newCell(x, y)
 		--cell.membrane[i] = x+50*math.cos(math.rad(15*i))
 		--cell.membrane[i+1] = y+50*math.sin(math.rad(15*i))
 	end
-	cell.mbsize = table.getn(cell.membrane)
+	--cell.mbsize = table.getn(cell.membrane)
 
 	cell.springs = {}
 	for i = 1,13 do cell.springs[i] = fNucSpringLength(cell) end
-	cell.membraneVel = { }
-	for i = 1,cell.mbsize do
-		cell.membraneVel[i] = 0 --set initial velocities to zero
-	end
-	--membraneVel[1] = 0.5
-	--membraneVel[2] = 0.5
-	cell.membraneAcc = { }
-	for i = 1,cell.mbsize do
-		cell.membraneAcc[i] = 0 --set initial acceleration to zero
-	end
+	
 	cell.genes = {}
 	cell.genes.growtime = 2 --1 --time to grow a new node, in seconds
 	cell.genes.splitnodes = 18 --18 --# membrane nodes to divide at
@@ -68,24 +59,24 @@ end
 
 function grow(c)
 	--insert new node into random part of membrane:
-	local idx = math.random(c.mbsize-1)
-	local idx2 = idx - 2
-	if idx2 < 1 then idx2 = c.mbsize-1 end
-	local nx = (c.membrane[idx2]+c.membrane[idx])/2 -- average of surrounding node x coords
-	local ny = (c.membrane[idx2+1]+c.membrane[idx+1])/2 -- " " y coords
-	table.insert(c.membrane,idx,nx)
-	table.insert(c.membrane,idx+1,ny)
-	local nvx = (c.membraneVel[idx2]+c.membraneVel[idx])/2 -- average of surrounding node vx coords
-	local nvy = (c.membraneVel[idx2+1]+c.membraneVel[idx+1])/2 -- " " vy coords
-	table.insert(c.membraneVel,idx,nvx)
-	table.insert(c.membraneVel,idx+1,nvy)
-	local nodax = (c.membraneAcc[idx2]+c.membraneAcc[idx])/2 -- average of surrounding node ax coords
-	local noday = (c.membraneAcc[idx2+1]+c.membraneAcc[idx+1])/2 -- " " ay coords
-	table.insert(c.membraneAcc,idx,nodax)
-	table.insert(c.membraneAcc,idx+1,noday)
+	local idx = math.random(table.getn(c.membrane))
+	local idx2 = idx - 1
+	if idx2 < 1 then idx2 = table.getn(c.membrane) end
+	
+	local nx = (c.membrane[idx2].x+c.membrane[idx].x)/2 -- average of surrounding node x coords
+	local ny = (c.membrane[idx2].y+c.membrane[idx].y)/2 -- " " y coords
+	
+	local nvx = (c.membrane[idx2].vx+c.membrane[idx].vx)/2 -- average of surrounding node vx coords
+	local nvy = (c.membrane[idx2].vy+c.membrane[idx].vy)/2 -- " " vy coords
+	
+	local nodax = (c.membrane[idx2].ax+c.membrane[idx].ax)/2 -- average of surrounding node ax coords
+	local noday = (c.membrane[idx2].ay+c.membrane[idx].ay)/2 -- " " ay coords
+	
+	table.insert(c.membrane,idx,{x=nx,y=ny,vx=nvx,vy=nvy,ax=nodax,ay=noday})
+	
 	--add spring to nucleus:
-	table.insert(c.springs,(idx+1)/2,fNucSpringLength(c))
-	c.mbsize = table.getn(c.membrane)
+	table.insert(c.springs,idx,fNucSpringLength(c))
+	--c.mbsize = table.getn(c.membrane)
 end
 
 function mitosis(_n)
@@ -156,9 +147,6 @@ end
 
 function updateCell(_n,dt)
 	local c = cells[_n]
-	--print(_n,c)
-	--print(c.membrane[1],c.membrane[2],c.membrane[mbsize-1],c.membrane[mbsize])
-	--print(c.nucleus.x,c.nucleus.y,c.nucleus.vx,c.nucleus.vy,c.nucleus.ax,c.nucleus.ay)
 	c.gtimer = c.gtimer + dt
 	if c.gtimer >= c.genes.growtime then --grow
 		c.gtimer = c.gtimer - c.genes.growtime --reset timer
@@ -166,7 +154,7 @@ function updateCell(_n,dt)
 	end
 	
 	--BEGIN MITOSIS:
-	if c.mbsize/2 >= c.genes.splitnodes then --mitosis!
+	if table.getn(c.membrane) >= c.genes.splitnodes then --mitosis!
 		mitosis(_n)
 	end
 	--END MITOSIS.
@@ -196,36 +184,39 @@ function updateCell(_n,dt)
 	local avgy = 0
 	--Verlet integration
 	local i = 1
-	while i < c.mbsize do
+	while i < table.getn(c.membrane) do
 		local continue = false
 		local newax = 0
 		local neway = 0
-		avgx = avgx + c.membrane[i]
-		avgy = avgy + c.membrane[i+1]
+		avgx = avgx + c.membrane[i].x
+		avgy = avgy + c.membrane[i].y
+		
 		--check for COLLISIONS:
+		--TODO: precise polygon collision detection
+		
 		--with player:
-		if distance(c.membrane[i],c.membrane[i+1],player.x,player.y) < plen+2 then
+		if distance(c.membrane[i].x,c.membrane[i].y,player.x,player.y) < plen+2 then
 			hitPlayer(1)
-			table.insert(debugPts,{x = c.membrane[i], y = c.membrane[i+1], r = 2})
+			table.insert(debugPts,{x = c.membrane[i].x, y = c.membrane[i].y, r = 2})
 			table.insert(debugPts,{x = c.nucleus.x, y = c.nucleus.y, r = 4})
 		end
 		--with bullets:
 		local j = 1
 		while j <= table.getn(bullets) do
-			if distance(c.membrane[i],c.membrane[i+1],bullets[j].x,bullets[j].y) < 4 then
+			if distance(c.membrane[i].x,c.membrane[i].y,bullets[j].x,bullets[j].y) < 4 then
 				
-				table.insert(debugPts,{x = c.membrane[i], y = c.membrane[i+1], r = 2})
+				table.insert(debugPts,{x = c.membrane[i].x, y = c.membrane[i].y, r = 2})
 				table.insert(debugPts,{x = c.nucleus.x, y = c.nucleus.y, r = 4})
 				
 				table.remove(bullets,j)
 				table.remove(c.membrane,i)
-				table.remove(c.membrane,i)
+				--[[table.remove(c.membrane,i)
 				table.remove(c.membraneVel,i)
 				table.remove(c.membraneVel,i)
 				table.remove(c.membraneAcc,i)
 				table.remove(c.membraneAcc,i)
 				table.remove(c.springs,(i+1)/2)
-				c.mbsize = table.getn(c.membrane)
+				c.mbsize = table.getn(c.membrane)]]
 				continue = true
 				break
 			else
@@ -235,13 +226,13 @@ function updateCell(_n,dt)
 		if not continue then
 		--update position:
 		--print(i,c.mbsize)
-		c.membrane[i] = c.membrane[i] + c.membraneVel[i]*dt + 0.5*c.membraneAcc[i]*dt*dt --update x
-		c.membrane[i+1] = c.membrane[i+1] + c.membraneVel[i+1]*dt + 0.5*c.membraneAcc[i+1]*dt*dt --update y
+		c.membrane[i].x = c.membrane[i].x + c.membrane[i].vx*dt + 0.5*c.membrane[i].ax*dt*dt --update x
+		c.membrane[i].y = c.membrane[i].y + c.membrane[i].vy*dt + 0.5*c.membrane[i].ay*dt*dt --update y
 		--boundaries:
-		if c.membrane[i] < xmin then c.membrane[i] = xmin+2; c.dir = c.dir + math.pi
-		elseif c.membrane[i] > xmax then c.membrane[i] = xmax-2; c.dir = c.dir + math.pi end
-		if c.membrane[i+1] < ymin then c.membrane[i+1] = ymin+2; c.dir = c.dir + math.pi
-		elseif c.membrane[i+1] > ymax then c.membrane[i+1] = ymax-2; c.dir = c.dir + math.pi end
+		if c.membrane[i].x < xmin then c.membrane[i].x = xmin+2; c.dir = c.dir + math.pi
+		elseif c.membrane[i].x > xmax then c.membrane[i].x = xmax-2; c.dir = c.dir + math.pi end
+		if c.membrane[i].y < ymin then c.membrane[i].y = ymin+2; c.dir = c.dir + math.pi
+		elseif c.membrane[i].y > ymax then c.membrane[i].y = ymax-2; c.dir = c.dir + math.pi end
 		--calculating acceleration:
 		
 		local accn = acc + 80*(math.random() - 0.5)
@@ -251,10 +242,10 @@ function updateCell(_n,dt)
 		--print(c.springs[(i+1)/2])
 		
 		--Hooke's law for spring connecting c.membrane point to c.nucleus:
-		local distance = math.sqrt((c.membrane[i]-c.nucleus.x)^2 + (c.membrane[i+1]-c.nucleus.y)^2)
-		local force = -kNucSpring*(distance-c.springs[(i+1)/2]) -- -kNucSpring*(distance-nucSpringLength)
+		local distance = math.sqrt((c.membrane[i].x-c.nucleus.x)^2 + (c.membrane[i].y-c.nucleus.y)^2)
+		local force = -kNucSpring*(distance-c.springs[i]) -- -kNucSpring*(distance-nucSpringLength)
 		--if 1 == i or 13 == i then force = -kNucSpring*(distance-nucSpringLength*1.75) end
-		local theta = math.atan2(c.membrane[i+1]-c.nucleus.y,c.membrane[i]-c.nucleus.x)
+		local theta = math.atan2(c.membrane[i].y-c.nucleus.y,c.membrane[i].x-c.nucleus.x)
 		newax = newax + (force/distance)*math.cos(theta)
 		neway = neway + (force/distance)*math.sin(theta)
 		nax = nax - --[[0.5*]](force/distance)*math.cos(theta)
@@ -266,42 +257,42 @@ function updateCell(_n,dt)
 		local othery = 0
 		--print(i,c.mbsize)
 		if 1 == i then
-			otherx = c.membrane[c.mbsize-1]
-			othery = c.membrane[c.mbsize]
+			otherx = c.membrane[table.getn(c.membrane)].x
+			othery = c.membrane[table.getn(c.membrane)].y
 		else
-			otherx = c.membrane[i-2]
-			othery = c.membrane[i-1]
+			otherx = c.membrane[i-1].x
+			othery = c.membrane[i-1].y
 		end
-		distance = math.sqrt((c.membrane[i]-otherx)^2 + (c.membrane[i+1]-othery)^2)
+		distance = math.sqrt((c.membrane[i].x-otherx)^2 + (c.membrane[i].y-othery)^2)
 		force = -kMemSpring*(distance-memSpringLength)
-		theta = math.atan2(c.membrane[i+1]-othery,c.membrane[i]-otherx)
+		theta = math.atan2(c.membrane[i].y-othery,c.membrane[i].x-otherx)
 		newax = newax + (force/distance)*math.cos(theta)
 		neway = neway + (force/distance)*math.sin(theta)
 		
 		--succeeding:
-		if c.mbsize-1 == i then
-			otherx = c.membrane[1]
-			othery = c.membrane[2]
+		if c.mbsize == i then
+			otherx = c.membrane[1].x
+			othery = c.membrane[1].y
 		else
-			otherx = c.membrane[i+2]
-			othery = c.membrane[i+3]
+			otherx = c.membrane[i+1].x
+			othery = c.membrane[i+1].y
 		end
-		distance = math.sqrt((c.membrane[i]-otherx)^2 + (c.membrane[i+1]-othery)^2)
+		distance = math.sqrt((c.membrane[i].x-otherx)^2 + (c.membrane[i].y-othery)^2)
 		force = -kMemSpring*(distance-memSpringLength)
-		theta = math.atan2(c.membrane[i+1]-othery,c.membrane[i]-otherx)
+		theta = math.atan2(c.membrane[i].y-othery,c.membrane[i].x-otherx)
 		newax = newax + (force/distance)*math.cos(theta)
 		neway = neway + (force/distance)*math.sin(theta)
 		
 		--damping:
-		newax = newax - mediumDamping*c.membraneVel[i]
-		neway = neway - mediumDamping*c.membraneVel[i+1]
+		newax = newax - mediumDamping*c.membrane[i].vx
+		neway = neway - mediumDamping*c.membrane[i].vy
 		
 		--update velocity:
-		c.membraneVel[i] = c.membraneVel[i] + (c.membraneAcc[i]+newax)*dt/2 --update vx
-		c.membraneVel[i+1] = c.membraneVel[i+1] + (c.membraneAcc[i+1]+neway)*dt/2 --update vy
-		c.membraneAcc[i] = newax
-		c.membraneAcc[i+1] = neway
-		i = i + 2
+		c.membrane[i].vx = c.membrane[i].vx + (c.membrane[i].ax+newax)*dt/2 --update vx
+		c.membrane[i].vy = c.membrane[i].vy + (c.membrane[i].ay+neway)*dt/2 --update vy
+		c.membrane[i].ax = newax
+		c.membrane[i].ay = neway
+		i = i + 1
 		end--if not continue; hackish workaround since Lua apparently doesn't have continue
 	end
 
@@ -325,4 +316,28 @@ function updateCell(_n,dt)
 	c.nucleus.vy = c.nucleus.vy + (c.nucleus.ay+nay)*dt/2
 	c.nucleus.ax = nax
 	c.nucleus.ay = nay
+end
+
+function drawCell(c)
+	local red = 0
+	local green = 0
+	if c.genes.acidity > 0 then
+		--red = 4*c.genes.acidity
+		green = -4*c.genes.acidity
+	elseif c.genes.acidity < 0 then
+		red = -4*c.genes.acidity
+		--green = 4*c.genes.acidity
+	end
+	local pgon = {}
+	for i,node in ipairs(c.membrane) do
+		table.insert(pgon,node.x)
+		table.insert(pgon,node.y)
+	end
+	love.graphics.setColor(255-red,255-green,255-red-green,64)
+	love.graphics.polygon("fill",pgon)
+	love.graphics.setColor(255,255,255,255)
+	love.graphics.polygon("line",pgon)
+	love.graphics.circle("line",c.nucleus.x,c.nucleus.y,2,10)
+	love.graphics.setColor(0,0,0,255)
+	for j = 1,table.getn(c.membrane) do love.graphics.point(c.membrane[j].x,c.membrane[j].y) end
 end
