@@ -180,7 +180,7 @@ function updateCell(_n,dt)
 	local avgy = 0
 	--Verlet integration
 	local i = 1
-	while i < table.getn(c.membrane) do
+	while i <= table.getn(c.membrane) do
 		local continue = false
 		local newax = 0
 		local neway = 0
@@ -222,6 +222,7 @@ function updateCell(_n,dt)
 		elseif c.membrane[i].x > xmax then c.membrane[i].x = xmax-2; c.dir = c.dir + math.pi end
 		if c.membrane[i].y < ymin then c.membrane[i].y = ymin+2; c.dir = c.dir + math.pi
 		elseif c.membrane[i].y > ymax then c.membrane[i].y = ymax-2; c.dir = c.dir + math.pi end
+		
 		--calculating acceleration:
 		
 		local accn = acc + 80*(math.random() - 0.5)
@@ -255,7 +256,7 @@ function updateCell(_n,dt)
 		neway = neway + (force/distance)*math.sin(theta)
 		
 		--succeeding:
-		if c.mbsize == i then
+		if table.getn(c.membrane) == i then
 			otherx = c.membrane[1].x
 			othery = c.membrane[1].y
 		else
