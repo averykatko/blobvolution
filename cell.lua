@@ -20,13 +20,7 @@ function newCell(x, y)
 	for i = 1,13 do
 		cell.membrane[i] = {x=x+50*math.cos(math.rad(15*i)),y=y+50*math.sin(math.rad(15*i)),vx=0,vy=0,ax=0,ay=0,spring=0}
 		cell.membrane[i].spring = fNucSpringLength(cell)
-		--cell.membrane[i] = x+50*math.cos(math.rad(15*i))
-		--cell.membrane[i+1] = y+50*math.sin(math.rad(15*i))
 	end
-	--cell.mbsize = table.getn(cell.membrane)
-
-	--cell.springs = {}
-	--for i = 1,13 do cell.springs[i] = fNucSpringLength(cell) end
 	
 	cell.genes = {}
 	cell.genes.growtime = 2 --1 --time to grow a new node, in seconds
@@ -74,10 +68,6 @@ function grow(c)
 	local noday = (c.membrane[idx2].ay+c.membrane[idx].ay)/2 -- " " ay coords
 	
 	table.insert(c.membrane,idx,{x=nx,y=ny,vx=nvx,vy=nvy,ax=nodax,ay=noday,spring=fNucSpringLength(c)})
-	
-	--add spring to nucleus:
-	--table.insert(c.springs,idx,fNucSpringLength(c))
-	--c.mbsize = table.getn(c.membrane)
 end
 
 function mitosis(_n)
@@ -88,16 +78,13 @@ function mitosis(_n)
 	c = {}
 	c.membrane = {}
 	c.nucleus = {}
-	--c.springs = {}
 	
 	local newcell = {}
 	newcell.membrane = {}
 	newcell.nucleus = {}
-	--newcell.springs = {}
 	
 	for i = 1,split-1 do
 		c.membrane[i] = table.copy(oldc.membrane[i])
-		--c.springs[i] = oldc.springs[i]
 	end
 	local nucCopy = table.copy(oldc.nucleus)
 	nucCopy.spring = fNucSpringLength(c)
@@ -105,7 +92,6 @@ function mitosis(_n)
 	
 	for i = split,oldsize do
 		newcell.membrane[i+1-split] = table.copy(oldc.membrane[i])
-		--newcell.springs[i+1-split] = oldc.springs[i]
 	end
 	
 	local nucCopy = table.copy(oldc.nucleus)
@@ -220,13 +206,7 @@ function updateCell(_n,dt)
 				
 				table.remove(bullets,j)
 				table.remove(c.membrane,i)
-				--[[table.remove(c.membrane,i)
-				table.remove(c.membraneVel,i)
-				table.remove(c.membraneVel,i)
-				table.remove(c.membraneAcc,i)
-				table.remove(c.membraneAcc,i)
-				table.remove(c.springs,(i+1)/2)
-				c.mbsize = table.getn(c.membrane)]]
+				
 				continue = true
 				break
 			else
@@ -235,7 +215,6 @@ function updateCell(_n,dt)
 		end
 		if not continue then
 		--update position:
-		--print(i,c.mbsize)
 		c.membrane[i].x = c.membrane[i].x + c.membrane[i].vx*dt + 0.5*c.membrane[i].ax*dt*dt --update x
 		c.membrane[i].y = c.membrane[i].y + c.membrane[i].vy*dt + 0.5*c.membrane[i].ay*dt*dt --update y
 		--boundaries:
@@ -249,12 +228,9 @@ function updateCell(_n,dt)
 		newax = newax + accn*math.cos(dir)
 		neway = neway + accn*math.sin(dir)
 		
-		--print(c.springs[(i+1)/2])
-		
 		--Hooke's law for spring connecting c.membrane point to c.nucleus:
 		local distance = math.sqrt((c.membrane[i].x-c.nucleus.x)^2 + (c.membrane[i].y-c.nucleus.y)^2)
-		local force = -kNucSpring*(distance-c.membrane[i].spring) -- -kNucSpring*(distance-nucSpringLength)
-		--if 1 == i or 13 == i then force = -kNucSpring*(distance-nucSpringLength*1.75) end
+		local force = -kNucSpring*(distance-c.membrane[i].spring)
 		local theta = math.atan2(c.membrane[i].y-c.nucleus.y,c.membrane[i].x-c.nucleus.x)
 		newax = newax + (force/distance)*math.cos(theta)
 		neway = neway + (force/distance)*math.sin(theta)
@@ -265,7 +241,6 @@ function updateCell(_n,dt)
 		--preceding:
 		local otherx = 0
 		local othery = 0
-		--print(i,c.mbsize)
 		if 1 == i then
 			otherx = c.membrane[table.getn(c.membrane)].x
 			othery = c.membrane[table.getn(c.membrane)].y
