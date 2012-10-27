@@ -29,7 +29,7 @@ function love.load()
 	bullets = {}
 	cells = {}
 	for i = 1,nInitCells do
-       cells[i] = newCell(112*i, 103*i)
+       cells[i] = newCell(112*i, 103*i, 13)
 	end
 	love.graphics.setBackgroundColor(128,128,255)
 	--love.graphics.setBackgroundColor(0,0,128)

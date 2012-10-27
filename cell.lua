@@ -12,13 +12,13 @@ function insertNode(m,idx,n)
 	table.insert(m,idx,n)
 end
 
-function newCell(x, y)
+function newCell(x,y,size)
 	local cell = {}
 	cell.nucleus = {x=x,y=y,vx=0,vy=0,ax=0,ay=0}
 
 	cell.membrane = {}
-	for i = 1,13 do
-		cell.membrane[i] = {x=x+50*math.cos(math.rad(15*i)),y=y+50*math.sin(math.rad(15*i)),vx=0,vy=0,ax=0,ay=0,spring=0}
+	for i = 1,size do
+		cell.membrane[i] = {x=x+50*math.cos(math.rad(360/size*i)),y=y+50*math.sin(math.rad(360/size*i)),vx=0,vy=0,ax=0,ay=0,spring=0}
 		cell.membrane[i].spring = fNucSpringLength(cell)
 	end
 	
